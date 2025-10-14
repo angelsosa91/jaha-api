@@ -16,6 +16,7 @@ import { RouteDto } from '../dto/route.dto';
 import { RoutesResponseDto } from '../dto/routes-response.dto';
 import { SetRouteRequestDto } from '../dto/set-route-request.dto';
 import { SetRouteResponseDto } from '../dto/set-route-response.dto';
+import { log } from 'console';
 
 @Injectable()
 export class JahaApiService {
@@ -244,6 +245,47 @@ export class JahaApiService {
       );
       throw new Error(
         `Failed to fetch linea status from database: ${error.message}`,
+      );
+    }
+  }
+
+  /**
+   * Limpia los registros antiguos de linea_status, manteniendo solo los últimos N días
+   * @param days Número de días a mantener (por defecto 7)
+   * @returns Promise con el número de registros eliminados
+   */
+  async cleanOldLineaStatusRecords(days: number = 7): Promise<number> {
+    try {
+      // Calcular la fecha límite (hace N días)
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - days);
+
+      this.logger.log(
+        `Limpiando registros de linea_status anteriores a ${cutoffDate.toISOString()}`,
+      );
+
+      // Eliminar registros más antiguos que la fecha límite
+      const result = await this.lineaStatusRepository
+        .createQueryBuilder()
+        .delete()
+        .from(LineaStatusEntity)
+        .where('created_at < :cutoffDate', { cutoffDate })
+        .execute();
+
+      const deletedCount = result.affected || 0;
+
+      this.logger.log(
+        `Limpieza completada: ${deletedCount} registros eliminados de linea_status`,
+      );
+
+      return deletedCount;
+    } catch (error) {
+      this.logger.error(
+        `Failed to clean old linea_status records: ${error.message}`,
+        error.stack,
+      );
+      throw new Error(
+        `Failed to clean old linea_status records: ${error.message}`,
       );
     }
   }
@@ -541,7 +583,7 @@ export class JahaApiService {
    * @returns Promise con la respuesta del servidor
    */
   async setRoute(payload: SetRouteRequestDto): Promise<SetRouteResponseDto> {
-    const { unidadId, lineaId, routeId } = payload;
+    const { unidadId, lineaId, routeId, trafficId } = payload;
     let responseData: SetRouteResponseDto | null = null;
 
     try {
@@ -549,7 +591,7 @@ export class JahaApiService {
       await this.ensureAuthenticated();
 
       this.logger.log(
-        `Setting route ${routeId} for unidad ${unidadId}, linea ${lineaId}`,
+        `Setting route ${routeId} for unidad ${unidadId}, linea ${lineaId}, traffic ${trafficId}`,
       );
 
       const response = await firstValueFrom(
@@ -580,6 +622,7 @@ export class JahaApiService {
         unidadId,
         lineaId,
         routeId,
+        trafficId,
         success: response.data.success,
         message: response.data.data?.message || null,
         errorMessage: null,
@@ -599,6 +642,7 @@ export class JahaApiService {
         unidadId,
         lineaId,
         routeId,
+        trafficId,
         success: false,
         message: null,
         errorMessage: responseData?.message ?? null,
@@ -614,6 +658,7 @@ export class JahaApiService {
 
   /**
    * Guarda un log de setRoute en la base de datos
+   * Si ya existe un registro con el mismo trafficId, lo actualiza en lugar de insertar uno nuevo
    * @param logData Datos del log a guardar
    * @returns Promise con la entidad guardada o null si falla
    */
@@ -621,6 +666,7 @@ export class JahaApiService {
     unidadId: number;
     lineaId: number;
     routeId: number;
+    trafficId: number;
     success: boolean;
     message: string | null;
     errorMessage: string | null;
@@ -628,10 +674,28 @@ export class JahaApiService {
     responseData: any;
   }): Promise<SetRouteLogEntity | null> {
     try {
-      const logEntity = new SetRouteLogEntity();
+      // Verificar si ya existe un registro con este trafficId
+      const existingLog = await this.setRouteLogRepository.findOne({
+        where: { trafficId: logData.trafficId },
+      });
+
+      let logEntity: SetRouteLogEntity;
+
+      if (existingLog) {
+        // Actualizar el registro existente
+        this.logger.debug(`Updating existing setRoute log with trafficId ${logData.trafficId}`);
+        logEntity = existingLog;
+      } else {
+        // Crear nuevo registro
+        this.logger.debug(`Creating new setRoute log with trafficId ${logData.trafficId}`);
+        logEntity = new SetRouteLogEntity();
+      }
+
+      // Actualizar/asignar los valores
       logEntity.unidadId = logData.unidadId;
       logEntity.lineaId = logData.lineaId;
       logEntity.routeId = logData.routeId;
+      logEntity.trafficId = logData.trafficId;
       logEntity.success = logData.success;
       logEntity.message = logData.message || '';
       logEntity.errorMessage = logData.errorMessage || '';
@@ -640,7 +704,7 @@ export class JahaApiService {
 
       const savedLog = await this.setRouteLogRepository.save(logEntity);
 
-      this.logger.debug(`Saved setRoute log with id ${savedLog.id}`);
+      this.logger.debug(`Saved setRoute log with id ${savedLog.id} and trafficId ${savedLog.trafficId}`);
 
       return savedLog;
     } catch (error) {

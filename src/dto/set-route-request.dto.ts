@@ -25,4 +25,12 @@ export class SetRouteRequestDto {
   @IsNumber()
   @IsNotEmpty()
   routeId: number;
+
+  @ApiProperty({
+    description: 'Traffic ID to assign',
+    example: 1,
+  })
+  @IsNumber()
+  @IsNotEmpty()
+  trafficId: number;
 }

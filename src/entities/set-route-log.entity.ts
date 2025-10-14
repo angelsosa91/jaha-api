@@ -11,6 +11,7 @@ import {
 @Index(['lineaId', 'createdAt'])
 @Index(['routeId', 'createdAt'])
 @Index(['success'])
+@Index(['trafficId'], { unique: true })
 export class SetRouteLogEntity {
   @PrimaryGeneratedColumn()
   id: number;
@@ -24,6 +25,9 @@ export class SetRouteLogEntity {
 
   @Column({ type: 'int', name: 'route_id' })
   routeId: number;
+
+  @Column({ type: 'bigint', name: 'traffic_id' })
+  trafficId: number;
 
   // Datos de la response
   @Column({ type: 'boolean' })
@@ -41,6 +45,7 @@ export class SetRouteLogEntity {
     unidadId: number;
     lineaId: number;
     routeId: number;
+    trafficId: number;
   };
 
   // Response completo en JSON para auditoría
