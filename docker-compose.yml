@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  # NestJS API
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: jaha-api
+    restart: unless-stopped
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: ${PORT:-3000}
+      DB_TYPE: ${DB_TYPE:-mysql}
+      DB_HOST: ${DB_HOST:-127.0.0.1}
+      DB_PORT: ${DB_PORT:-3306}
+      DB_USERNAME: ${DB_USERNAME:-jaha_user}
+      DB_PASSWORD: ${DB_PASSWORD:-jaha_password}
+      DB_DATABASE: ${DB_DATABASE:-jaha_db}
+      DB_SYNCHRONIZE: ${DB_SYNCHRONIZE:-false}
+      DB_LOGGING: ${DB_LOGGING:-false}
+    ports:
+      - "${PORT:-3000}:3000"
+    # Use host network to access external MySQL on the same server
+    network_mode: host
+    volumes:
+      - ./logs:/app/logs
