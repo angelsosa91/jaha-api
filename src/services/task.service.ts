@@ -21,6 +21,19 @@ export class TaskService {
       this.logger.log(
         `Tarea completada exitosamente: ${results.length} registros guardados`,
       );
+
+      // Verificar discrepancias en las rutas
+      if (results.length > 0) {
+        this.logger.log('Verificando discrepancias de rutas...');
+        const alertsGenerated =
+          await this.jahaApiService.verifyAndGenerateRouteAlerts(results);
+
+        if (alertsGenerated > 0) {
+          this.logger.warn(
+            `Se generaron ${alertsGenerated} alertas de discrepancia de rutas`,
+          );
+        }
+      }
     } catch (error) {
       this.logger.error(
         `Error en tarea programada: ${error.message}`,

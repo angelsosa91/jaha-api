@@ -7,6 +7,7 @@ import { firstValueFrom } from 'rxjs';
 import { LineaStatusEntity } from '../entities/linea-status.entity';
 import { RouteEntity } from '../entities/route.entity';
 import { SetRouteLogEntity } from '../entities/set-route-log.entity';
+import { RouteAlertEntity } from '../entities/route-alert.entity';
 import { LoginCredentialsDto } from '../dto/login-credentials.dto';
 import { LoginResponseDto } from '../dto/login-response.dto';
 import { LineaStatusDto } from '../dto/linea-status.dto';
@@ -36,6 +37,8 @@ export class JahaApiService {
     private readonly routeRepository: Repository<RouteEntity>,
     @InjectRepository(SetRouteLogEntity)
     private readonly setRouteLogRepository: Repository<SetRouteLogEntity>,
+    @InjectRepository(RouteAlertEntity)
+    private readonly routeAlertRepository: Repository<RouteAlertEntity>,
   ) {
     this.apiUrl = this.configService.get<string>('API_JAHA_URL') ?? '';
     this.username = this.configService.get<string>('API_JAHA_USERNAME') ?? '';
@@ -287,6 +290,146 @@ export class JahaApiService {
       throw new Error(
         `Failed to clean old linea_status records: ${error.message}`,
       );
+    }
+  }
+
+  /**
+   * Verifica las rutas asignadas vs las rutas actuales y genera alertas si son diferentes
+   * @param lineaStatusRecords Registros de linea_status recién guardados
+   * @returns Promise con el número de alertas generadas
+   */
+  async verifyAndGenerateRouteAlerts(
+    lineaStatusRecords: LineaStatusEntity[],
+  ): Promise<number> {
+    let alertsGenerated = 0;
+
+    try {
+      this.logger.log(
+        `Verificando rutas para ${lineaStatusRecords.length} registros`,
+      );
+
+      for (const lineaStatus of lineaStatusRecords) {
+        try {
+          // Buscar el último set_route_log para esta unidad y línea
+          const lastSetRouteLog = await this.setRouteLogRepository.findOne({
+            where: {
+              unidadId: lineaStatus.unidad,
+              lineaId: lineaStatus.idLinea,
+            },
+            order: {
+              createdAt: 'DESC',
+            },
+          });
+
+          // Si no hay registro de ruta asignada, no hay nada que verificar
+          if (!lastSetRouteLog) {
+            continue;
+          }
+
+          // Parsear el campo "recorrido" que viene en formato "0 - ruta"
+          const recorridoParts = lineaStatus.recorrido.split(' - ');
+          if (recorridoParts.length < 1) {
+            this.logger.warn(
+              `Formato de recorrido inválido para unidad ${lineaStatus.unidad}: ${lineaStatus.recorrido}`,
+            );
+            continue;
+          }
+
+          // Obtener el ID de la ruta actual (primera parte antes del " - ")
+          const actualRouteId = parseInt(recorridoParts[0].trim(), 10);
+
+          if (isNaN(actualRouteId)) {
+            this.logger.warn(
+              `No se pudo parsear route_id del recorrido para unidad ${lineaStatus.unidad}: ${lineaStatus.recorrido}`,
+            );
+            continue;
+          }
+
+          // Comparar con la ruta asignada
+          if (actualRouteId !== lastSetRouteLog.routeId) {
+            // Las rutas son diferentes, verificar si ya existe una alerta sin resolver
+            const existingAlert = await this.routeAlertRepository.findOne({
+              where: {
+                unidadId: lineaStatus.unidad,
+                lineaId: lineaStatus.idLinea,
+                resolved: false,
+              },
+              order: {
+                createdAt: 'DESC',
+              },
+            });
+
+            // Si ya existe una alerta sin resolver con los mismos datos, no crear otra
+            if (
+              existingAlert &&
+              existingAlert.expectedRouteId === lastSetRouteLog.routeId &&
+              existingAlert.actualRouteId === actualRouteId
+            ) {
+              continue;
+            }
+
+            // Obtener nombres de las rutas para mejor información
+            const expectedRoute = await this.routeRepository.findOne({
+              where: { id: lastSetRouteLog.routeId },
+            });
+            const actualRoute = await this.routeRepository.findOne({
+              where: { id: actualRouteId },
+            });
+
+            // Crear la alerta
+            const alert = new RouteAlertEntity();
+            alert.unidadId = lineaStatus.unidad;
+            alert.lineaId = lineaStatus.idLinea;
+            alert.expectedRouteId = lastSetRouteLog.routeId;
+            alert.actualRouteId = actualRouteId;
+            alert.expectedRouteName = expectedRoute?.name || `Route ${lastSetRouteLog.routeId}`;
+            alert.actualRouteName = actualRoute?.name || recorridoParts.slice(1).join(' - ').trim();
+            alert.empresaNombre = lineaStatus.nombreEmpresa;
+            alert.lineaNombre = lineaStatus.nombreLinea;
+            alert.resolved = false;
+            alert.alertData = {
+              lineaStatusId: lineaStatus.id,
+              setRouteLogId: lastSetRouteLog.id,
+              lat: parseFloat(lineaStatus.lat),
+              lng: parseFloat(lineaStatus.lng),
+              recorridoOriginal: lineaStatus.recorrido,
+            };
+
+            await this.routeAlertRepository.save(alert);
+
+            this.logger.warn(
+              `ALERTA: Unidad ${lineaStatus.unidad} (${lineaStatus.nombreLinea}) - ` +
+                `Ruta esperada: ${alert.expectedRouteName} (ID: ${lastSetRouteLog.routeId}), ` +
+                `Ruta actual: ${alert.actualRouteName} (ID: ${actualRouteId})`,
+            );
+
+            alertsGenerated++;
+          }
+        } catch (error) {
+          this.logger.error(
+            `Error al verificar ruta para unidad ${lineaStatus.unidad}: ${error.message}`,
+            error.stack,
+          );
+          // Continuar con el siguiente registro aunque falle uno
+          continue;
+        }
+      }
+
+      if (alertsGenerated > 0) {
+        this.logger.warn(
+          `Se generaron ${alertsGenerated} alertas de discrepancia de rutas`,
+        );
+      } else {
+        this.logger.log('No se detectaron discrepancias en las rutas');
+      }
+
+      return alertsGenerated;
+    } catch (error) {
+      this.logger.error(
+        `Error en verificación de rutas: ${error.message}`,
+        error.stack,
+      );
+      return alertsGenerated;
     }
   }
 

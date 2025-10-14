@@ -11,6 +11,7 @@ import { JahaApiService } from './services/jaha-api.service';
 import { LineaStatusEntity } from './entities/linea-status.entity';
 import { RouteEntity } from './entities/route.entity';
 import { SetRouteLogEntity } from './entities/set-route-log.entity';
+import { RouteAlertEntity } from './entities/route-alert.entity';
 import { LoggingInterceptor } from './interceptors/logging.interceptor';
 
 @Module({
@@ -30,7 +31,12 @@ import { LoggingInterceptor } from './interceptors/logging.interceptor';
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
       synchronize: true, // Solo para desarrollo, desactivar en producción
     }),
-    TypeOrmModule.forFeature([LineaStatusEntity, RouteEntity, SetRouteLogEntity]),
+    TypeOrmModule.forFeature([
+      LineaStatusEntity,
+      RouteEntity,
+      SetRouteLogEntity,
+      RouteAlertEntity,
+    ]),
   ],
   controllers: [AppController],
   providers: [
