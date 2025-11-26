@@ -11,7 +11,7 @@ services:
     environment:
       NODE_ENV: ${NODE_ENV:-production}
       PORT: ${PORT:-3000}
-      DB_TYPE: ${DB_TYPE:-mysql}
+      # Database
       DB_HOST: ${DB_HOST:-127.0.0.1}
       DB_PORT: ${DB_PORT:-3306}
       DB_USERNAME: ${DB_USERNAME:-jaha_user}
@@ -19,6 +19,10 @@ services:
       DB_DATABASE: ${DB_DATABASE:-jaha_db}
       DB_SYNCHRONIZE: ${DB_SYNCHRONIZE:-false}
       DB_LOGGING: ${DB_LOGGING:-false}
+      # API Jaha
+      API_JAHA_URL: ${API_JAHA_URL}
+      API_JAHA_USERNAME: ${API_JAHA_USERNAME}
+      API_JAHA_PASSWORD: ${API_JAHA_PASSWORD}
     ports:
       - "${PORT:-3000}:3000"
     # Use host network to access external MySQL on the same server

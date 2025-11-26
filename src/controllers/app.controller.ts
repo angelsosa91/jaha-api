@@ -16,6 +16,18 @@ export class AppController {
   }
 
   /**
+   * Health check endpoint para Docker y monitoreo
+   */
+  @Get('health')
+  getHealth() {
+    return {
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+    };
+  }
+
+  /**
    * Endpoint para obtener el estado de las líneas desde la API de Jaha
    */
   @Get('linea/status')

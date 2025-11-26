@@ -29,7 +29,8 @@ import { LoggingInterceptor } from './interceptors/logging.interceptor';
       password: process.env.DB_PASSWORD || '',
       database: process.env.DB_DATABASE || 'nestjs_db',
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
-      synchronize: true, // Solo para desarrollo, desactivar en producción
+      synchronize: process.env.DB_SYNCHRONIZE === 'true',
+      logging: process.env.DB_LOGGING === 'true',
     }),
     TypeOrmModule.forFeature([
       LineaStatusEntity,
