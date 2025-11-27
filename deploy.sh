@@ -18,7 +18,7 @@ NC='\033[0m' # No Color
 
 # Paso 1: Bajar contenedores
 echo -e "${YELLOW}[1/5] Bajando contenedores...${NC}"
-docker-compose down
+docker compose down
 echo -e "${GREEN}✓ Contenedores detenidos${NC}"
 echo ""
 
@@ -30,13 +30,13 @@ echo ""
 
 # Paso 3: Construir imagen
 echo -e "${YELLOW}[3/5] Construyendo nueva imagen...${NC}"
-docker-compose build --no-cache
+docker compose build --no-cache
 echo -e "${GREEN}✓ Imagen construida${NC}"
 echo ""
 
 # Paso 4: Levantar contenedor
 echo -e "${YELLOW}[4/5] Levantando contenedor...${NC}"
-docker-compose up -d
+docker compose up -d
 echo -e "${GREEN}✓ Contenedor levantado${NC}"
 echo ""
 
@@ -44,7 +44,7 @@ echo ""
 echo -e "${YELLOW}[5/5] Verificando estado...${NC}"
 sleep 3  # Esperar a que el contenedor inicie
 echo ""
-docker-compose ps
+docker compose ps
 echo ""
 
 # Health check
