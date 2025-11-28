@@ -6,6 +6,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      target: production
     container_name: jaha-api
     restart: always
     env_file:

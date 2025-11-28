@@ -15,6 +15,9 @@ COPY . .
 # Build the application
 RUN npm run build
 
+# Verify build output
+RUN ls -la /app/dist && cat /app/dist/main.js | head -n 5
+
 # Stage 2: Production
 FROM node:20-alpine AS production
 
@@ -36,6 +39,9 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/data-source.ts ./
 COPY --from=builder /app/src/migrations ./src/migrations
 COPY --from=builder /app/src/entities ./src/entities
+
+# Verify copied files
+RUN ls -la /app && ls -la /app/dist
 
 # Create a non-root user
 RUN addgroup -g 1001 -S nodejs && \
