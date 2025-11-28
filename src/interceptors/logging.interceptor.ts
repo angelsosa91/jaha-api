@@ -24,15 +24,15 @@ export class LoggingInterceptor implements NestInterceptor {
       `Incoming Request: ${method} ${url} - IP: ${ip} - UserAgent: ${userAgent}`,
     );
 
-    if (Object.keys(body).length > 0) {
+    if (body && Object.keys(body).length > 0) {
       this.logger.debug(`Request Body: ${JSON.stringify(body)}`);
     }
 
-    if (Object.keys(query).length > 0) {
+    if (query && Object.keys(query).length > 0) {
       this.logger.debug(`Query Params: ${JSON.stringify(query)}`);
     }
 
-    if (Object.keys(params).length > 0) {
+    if (params && Object.keys(params).length > 0) {
       this.logger.debug(`Route Params: ${JSON.stringify(params)}`);
     }
 
