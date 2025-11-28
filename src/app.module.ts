@@ -29,7 +29,9 @@ import { LoggingInterceptor } from './interceptors/logging.interceptor';
       password: process.env.DB_PASSWORD || '',
       database: process.env.DB_DATABASE || 'nestjs_db',
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
-      synchronize: process.env.DB_SYNCHRONIZE === 'true',
+      migrations: [__dirname + '/migrations/**/*{.ts,.js}'],
+      synchronize: false, // Usar migraciones en lugar de synchronize
+      migrationsRun: false, // Las migraciones se ejecutan manualmente
       logging: process.env.DB_LOGGING === 'true',
     }),
     TypeOrmModule.forFeature([
