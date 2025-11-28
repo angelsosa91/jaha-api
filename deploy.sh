@@ -24,7 +24,7 @@ echo ""
 
 # Paso 2: Limpiar imágenes antiguas (opcional, comentar si no quieres limpiar)
 echo -e "${YELLOW}[2/5] Limpiando imágenes antiguas...${NC}"
-docker image prune -f
+docker image prune -a -f
 echo -e "${GREEN}✓ Imágenes antiguas eliminadas${NC}"
 echo ""
 
@@ -35,13 +35,20 @@ echo -e "${GREEN}✓ Imagen construida${NC}"
 echo ""
 
 # Paso 4: Levantar contenedor
-echo -e "${YELLOW}[4/5] Levantando contenedor...${NC}"
+echo -e "${YELLOW}[4/6] Levantando contenedor...${NC}"
 docker compose up -d
 echo -e "${GREEN}✓ Contenedor levantado${NC}"
 echo ""
 
-# Paso 5: Verificar estado
-echo -e "${YELLOW}[5/5] Verificando estado...${NC}"
+# Paso 5: Ejecutar migraciones
+echo -e "${YELLOW}[5/6] Ejecutando migraciones de base de datos...${NC}"
+sleep 5  # Esperar a que la base de datos esté lista
+docker compose exec -T api npm run migration:run
+echo -e "${GREEN}✓ Migraciones ejecutadas${NC}"
+echo ""
+
+# Paso 6: Verificar estado
+echo -e "${YELLOW}[6/6] Verificando estado...${NC}"
 sleep 3  # Esperar a que el contenedor inicie
 echo ""
 docker compose ps
@@ -63,7 +70,9 @@ echo -e "${GREEN}  Despliegue completado${NC}"
 echo "========================================="
 echo ""
 echo "Comandos útiles:"
-echo "  Ver logs:      docker-compose logs -f api"
-echo "  Detener:       docker-compose down"
-echo "  Reiniciar:     docker-compose restart api"
+echo "  Ver logs:       docker-compose logs -f api"
+echo "  Detener:        docker-compose down"
+echo "  Reiniciar:      docker-compose restart api"
+echo "  Migraciones:    docker-compose exec api npm run migration:run"
+echo "  Revertir migr.: docker-compose exec api npm run migration:revert"
 echo ""
