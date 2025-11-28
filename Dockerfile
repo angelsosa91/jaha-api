@@ -22,12 +22,20 @@ WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
+COPY tsconfig*.json ./
 
-# Install only production dependencies
-RUN npm ci --only=production && npm cache clean --force
+# Install only production dependencies (plus ts-node for migrations)
+RUN npm ci --only=production && \
+    npm install dotenv ts-node tsconfig-paths && \
+    npm cache clean --force
 
 # Copy built application from builder stage
 COPY --from=builder /app/dist ./dist
+
+# Copy TypeORM files for migrations (data-source, migrations, entities)
+COPY --from=builder /app/data-source.ts ./
+COPY --from=builder /app/src/migrations ./src/migrations
+COPY --from=builder /app/src/entities ./src/entities
 
 # Create a non-root user
 RUN addgroup -g 1001 -S nodejs && \
