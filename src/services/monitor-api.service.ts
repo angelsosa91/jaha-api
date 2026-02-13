@@ -124,6 +124,15 @@ export class MonitorApiService {
           entity.kmRecorridos = item.km_recorridos;
 
           await this.monitorDistanceRepository.save(entity);
+
+          // Acumular km en tms.trucks
+          if (item.km_recorridos > 0) {
+            await this.dataSource.query(
+              `UPDATE tms.trucks SET km = COALESCE(km, 0) + ? WHERE gps_id = ?`,
+              [item.km_recorridos, item.id_movil],
+            );
+          }
+
           saved++;
         }
       } catch (error) {
