@@ -12,6 +12,8 @@ import { LineaStatusEntity } from './entities/linea-status.entity';
 import { RouteEntity } from './entities/route.entity';
 import { SetRouteLogEntity } from './entities/set-route-log.entity';
 import { RouteAlertEntity } from './entities/route-alert.entity';
+import { MonitorDistanceEntity } from './entities/monitor-distance.entity';
+import { MonitorApiService } from './services/monitor-api.service';
 import { LoggingInterceptor } from './interceptors/logging.interceptor';
 
 @Module({
@@ -39,6 +41,7 @@ import { LoggingInterceptor } from './interceptors/logging.interceptor';
       RouteEntity,
       SetRouteLogEntity,
       RouteAlertEntity,
+      MonitorDistanceEntity,
     ]),
   ],
   controllers: [AppController],
@@ -46,6 +49,7 @@ import { LoggingInterceptor } from './interceptors/logging.interceptor';
     AppService,
     TaskService,
     JahaApiService,
+    MonitorApiService,
     {
       provide: APP_INTERCEPTOR,
       useClass: LoggingInterceptor,

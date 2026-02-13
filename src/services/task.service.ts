@@ -1,12 +1,16 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { JahaApiService } from './jaha-api.service';
+import { MonitorApiService } from './monitor-api.service';
 
 @Injectable()
 export class TaskService {
   private readonly logger = new Logger(TaskService.name);
 
-  constructor(private readonly jahaApiService: JahaApiService) { }
+  constructor(
+    private readonly jahaApiService: JahaApiService,
+    private readonly monitorApiService: MonitorApiService,
+  ) { }
 
   /**
    * Tarea programada que se ejecuta cada minuto
@@ -61,6 +65,30 @@ export class TaskService {
     } catch (error) {
       this.logger.error(
         `Error en tarea de limpieza: ${error.message}`,
+        error.stack,
+      );
+    }
+  }
+
+  /**
+   * Tarea programada que se ejecuta todos los días a las 06:00 AM
+   * Consulta la distancia recorrida del día anterior para todos los buses activos
+   */
+  @Cron('0 6 * * *')
+  async fetchYesterdayDistances() {
+    this.logger.log(
+      'Iniciando tarea programada: Obtener distancias del día anterior',
+    );
+
+    try {
+      const result =
+        await this.monitorApiService.fetchAndSaveYesterdayDistances();
+      this.logger.log(
+        `Tarea completada — Buses: ${result.total}, Guardados: ${result.saved}, Errores: ${result.errors}`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Error en tarea de distancias: ${error.message}`,
         error.stack,
       );
     }

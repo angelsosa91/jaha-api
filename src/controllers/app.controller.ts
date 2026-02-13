@@ -1,6 +1,7 @@
-import { Controller, Get, Post, Body, Param } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Query } from '@nestjs/common';
 import { AppService } from '../services/app.service';
 import { JahaApiService } from '../services/jaha-api.service';
+import { MonitorApiService } from '../services/monitor-api.service';
 import { SetRouteRequestDto } from '../dto/set-route-request.dto';
 
 @Controller()
@@ -8,6 +9,7 @@ export class AppController {
   constructor(
     private readonly appService: AppService,
     private readonly jahaApiService: JahaApiService,
+    private readonly monitorApiService: MonitorApiService,
   ) { }
 
   @Get()
@@ -139,5 +141,43 @@ export class AppController {
     @Body() payload: SetRouteRequestDto
   ) {
     return await this.jahaApiService.setRoute(payload);
+  }
+
+  // ==================== Monitor Distance ====================
+
+  /**
+   * Trigger manual para obtener y guardar distancias del día anterior
+   */
+  @Get('monitor/distance/fetch-yesterday')
+  async fetchYesterdayDistances() {
+    return await this.monitorApiService.fetchAndSaveYesterdayDistances();
+  }
+
+  /**
+   * Obtener todos los registros de distancia
+   */
+  @Get('monitor/distance/all')
+  async getAllDistances() {
+    return await this.monitorApiService.getAllDistances();
+  }
+
+  /**
+   * Obtener distancias por código de bus
+   */
+  @Get('monitor/distance/bus/:busCode')
+  async getDistancesByBus(@Param('busCode') busCode: string) {
+    return await this.monitorApiService.getDistancesByBus(busCode);
+  }
+
+  /**
+   * Obtener distancias por rango de fechas
+   * Ejemplo: /monitor/distance/date-range?from=2025-03-01&to=2025-03-31
+   */
+  @Get('monitor/distance/date-range')
+  async getDistancesByDateRange(
+    @Query('from') from: string,
+    @Query('to') to: string,
+  ) {
+    return await this.monitorApiService.getDistancesByDateRange(from, to);
   }
 }
