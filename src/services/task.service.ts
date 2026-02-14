@@ -94,6 +94,30 @@ export class TaskService {
     }
   }
 
+  /**
+   * Tarea programada que se ejecuta el primer día de cada mes a las 02:00 AM
+   * Limpia registros de monitor_distance con más de 6 meses de antigüedad
+   */
+  @Cron('0 2 1 * *')
+  async cleanOldMonitorDistanceRecords() {
+    this.logger.log(
+      'Iniciando tarea de limpieza: Eliminar registros antiguos de monitor_distance',
+    );
+
+    try {
+      const deletedCount =
+        await this.monitorApiService.cleanOldDistanceRecords(6);
+      this.logger.log(
+        `Limpieza completada: ${deletedCount} registros de monitor_distance eliminados`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Error en limpieza de monitor_distance: ${error.message}`,
+        error.stack,
+      );
+    }
+  }
+
   // Ejemplos de otras tareas programadas comentadas para referencia:
   /*
   // Ejecuta cada 10 segundos

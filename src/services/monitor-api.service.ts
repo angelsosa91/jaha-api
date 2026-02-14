@@ -170,6 +170,27 @@ export class MonitorApiService {
   }
 
   /**
+   * Elimina registros de monitor_distance con más de X meses de antigüedad
+   */
+  async cleanOldDistanceRecords(months: number): Promise<number> {
+    const cutoffDate = new Date();
+    cutoffDate.setMonth(cutoffDate.getMonth() - months);
+
+    const result = await this.monitorDistanceRepository
+      .createQueryBuilder()
+      .delete()
+      .from(MonitorDistanceEntity)
+      .where('created_at < :cutoffDate', { cutoffDate })
+      .execute();
+
+    const deletedCount = result.affected || 0;
+    this.logger.log(
+      `Registros eliminados (más de ${months} meses): ${deletedCount}`,
+    );
+    return deletedCount;
+  }
+
+  /**
    * Obtiene registros de distancia por rango de fechas
    */
   async getDistancesByDateRange(
