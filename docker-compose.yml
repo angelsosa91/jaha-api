@@ -12,6 +12,7 @@ services:
     env_file:
       - .env
     environment:
+      TZ: America/Asuncion
       NODE_ENV: ${NODE_ENV:-production}
       PORT: ${PORT:-3000}
       # Database

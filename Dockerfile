@@ -21,6 +21,12 @@ RUN ls -la /app/dist && cat /app/dist/main.js | head -n 5
 # Stage 2: Production
 FROM node:20-alpine AS production
 
+# Configurar timezone
+RUN apk add --no-cache tzdata && \
+    cp /usr/share/zoneinfo/America/Asuncion /etc/localtime && \
+    echo "America/Asuncion" > /etc/timezone && \
+    apk del tzdata
+
 WORKDIR /app
 
 # Copy package files
