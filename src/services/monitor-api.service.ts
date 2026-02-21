@@ -18,6 +18,7 @@ interface MonitorDistanceResponse {
 interface ActiveBus {
   bus: string;
   gps_id: number;
+  id_truck: number;
 }
 
 @Injectable()
@@ -45,7 +46,7 @@ export class MonitorApiService {
   async getActiveBuses(): Promise<ActiveBus[]> {
     try {
       const buses = await this.dataSource.query(
-        `SELECT code as bus, gps_id FROM tms.trucks WHERE status = 'SI' and gps_id > 0`,
+        `SELECT id_truck, code as bus, gps_id FROM tms.trucks WHERE status = 'SI' and gps_id > 0`,
       );
       this.logger.log(`Buses activos encontrados: ${buses.length}`);
       return buses;
@@ -125,11 +126,20 @@ export class MonitorApiService {
 
           await this.monitorDistanceRepository.save(entity);
 
-          // Acumular km en tms.trucks
           if (item.km_recorridos > 0) {
+            // Acumular km total en tms.trucks
             await this.dataSource.query(
               `UPDATE tms.trucks SET km = COALESCE(km, 0) + ? WHERE gps_id = ?`,
               [item.km_recorridos, item.id_movil],
+            );
+
+            // UPSERT km diario en tms.trucks_day_km (llave compuesta: id_truck + workday)
+            const workday = entity.fechaDesde.toISOString().split('T')[0];
+            await this.dataSource.query(
+              `INSERT INTO tms.trucks_day_km (id_truck, workday, km)
+               VALUES (?, ?, ?)
+               ON DUPLICATE KEY UPDATE km = VALUES(km)`,
+              [bus.id_truck, workday, item.km_recorridos],
             );
           }
 
